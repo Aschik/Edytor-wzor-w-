@@ -126,9 +126,7 @@ class MainFrame(QtWidgets.QWidget):
 
 
     def loadHistory(self):
-        '''Load history and favorites if exists
-        '''
-        #----------------Check history file----------------
+
         history_file_path=os.path.join(CURRENT_DIR,HISTORY_FILE)
 
         if os.path.exists(history_file_path):
