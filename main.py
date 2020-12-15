@@ -77,15 +77,11 @@ def getXExpandYExpandSizePolicy():
     return sizePolicy
 
 
-
-#-----Render single formula and save img file-----
 def renderFormula(text,reso,outfile=None):
     if len(text)==0:
         return 2, None
 
     reso_str='%dx%d' %(reso,reso)
-
-    #------------Get a random tmp file name------------
     tmp_tex_fd,tmp_tex_file=tempfile.mkstemp(suffix='.tex',prefix='tmp_latex_',
             dir=r'C:\tmp')
     if outfile is None:
@@ -94,7 +90,6 @@ def renderFormula(text,reso,outfile=None):
     else:
         tmp_img_file=outfile
 
-    #------------Call tex2im to render text------------
     try:
         tfile=os.fdopen(tmp_tex_fd,'w')
         tfile.write(text)
