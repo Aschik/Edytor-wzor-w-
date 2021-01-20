@@ -181,7 +181,7 @@
         ]
     ],
     [
-        "Ulamki",
+        "Ułamki",
         [
             ["\\frac{a}{b}", "tab_icons/tab_09/0.png"],
             ["\\tfrac{a}{b}", "tab_icons/tab_09/1.png"],
@@ -191,7 +191,7 @@
         ]
     ],
     [
-        "Calki",
+        "Całki",
         [
             ["\\int dx", "tab_icons/tab_10/0.png"],
             ["\\int_{a}^{b} dx ", "tab_icons/tab_10/1.png"],

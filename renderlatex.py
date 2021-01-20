@@ -12,7 +12,6 @@ RELATIVE_OUTDIR = 'tab_icons'
 OUTPUTDIR       = os.path.join(CURRENT_DIR,RELATIVE_OUTDIR)
 ICON_META_FILE  = os.path.join(CURRENT_DIR,'icon_paths.txt')
 
-#-----------------Render a matrix-----------------
 #Renderowanie macierzy
 def renderMatrix(nrow,ncol,matrix_type,bracket_str,add_dummy,
         filename,subdir,outdir):
