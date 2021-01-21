@@ -81,7 +81,7 @@ def renderFormula(text,reso,outfile=None):
 
     reso_str='%dx%d' %(reso,reso)
 
-    #------------Get a random tmp file name------------
+    #------------randomowy tmp nazwa pliku-----------
     tmp_tex_fd,tmp_tex_file=tempfile.mkstemp(suffix='.tex',prefix='tmp_latex_',
             dir='/tmp')
     if outfile is None:
@@ -138,7 +138,7 @@ class MainFrame(QtWidgets.QWidget):
         else:
             raise Exception("Error")
 
-        #---------------Add buttons to grid---------------
+        #---------------Dodanie przycisków do grida---------------
         positions=[(ii,jj) for ii in range(nrow) for jj in range(ncol)]
 
         for posii,thumbnailii in zip(positions,thumbnail_list):
@@ -237,7 +237,7 @@ class MainFrame(QtWidgets.QWidget):
 
         self.clip_board=QtWidgets.QApplication.clipboard()
 
-        #------------Add buttons for text frame------------
+        #------------Dodanie przyciskóœ------------
         self.undo_button=QtWidgets.QToolButton()
         self.redo_button=QtWidgets.QToolButton()
         self.cut_button=QtWidgets.QToolButton()
@@ -375,7 +375,6 @@ class MainFrame(QtWidgets.QWidget):
             return 0
 
         elif rec==2 and tmp_img_file is None:
-            #--------------------Empty text--------------------
             self.img_copy_button.setEnabled(False)
             self.img_save_button.setEnabled(False)
             self.img_addfav_button.setEnabled(False)
