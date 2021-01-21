@@ -280,12 +280,11 @@ r'\infty'
 
 
 
-#--------------------Functions--------------------
+#--------------------Funkcje--------------------
 getBeginStr = lambda x: r'\begin{%s}' %x
 getEndStr = lambda x: r'\end{%s}' %x
 
 
-#--------Get string for matrix inner lines--------
 def getMatrixInner(nrow,ncol,add_dummy):
     if not add_dummy:
         line_str='&'.join([' ']*ncol)
@@ -301,7 +300,7 @@ def getMatrixInner(nrow,ncol,add_dummy):
     return inner_str
 
 
-#--Get string for matrix with left and right brackets--
+#- String dla matrycy z lewym i prawym nawiasem--
 def getDoubleMatrix(nrow,ncol,matrix_type,add_dummy=True):
     assert matrix_type in ['matrix','bmatrix','pmatrix','vmatrix',
             'Bmatrix','Vmatrix'], "<matrix_type> not included."
@@ -318,7 +317,6 @@ def getDoubleMatrix(nrow,ncol,matrix_type,add_dummy=True):
     return ret_str
 
 
-#---------Get string for cases inner lines---------
 def getCasesInner(nrow,add_dummy):
     inner_str=[]
     for ii in range(nrow):
@@ -332,7 +330,6 @@ def getCasesInner(nrow,add_dummy):
     return line_str
 
 
-#-----------Get string for cases matrix-----------
 def getCasesMatrix(nrow,add_dummy=True):
     begin_matrix=getBeginStr('cases')
     end_matrix=getEndStr('cases')
@@ -345,7 +342,6 @@ def getCasesMatrix(nrow,add_dummy=True):
     return ret_str
 
 
-#-----Get string for matrix with left bracket-----
 def getLeftMatrix(nrow,ncol,bracket_str,add_dummy=True):
     bracket_dict={
             '(': r'(',
@@ -368,7 +364,6 @@ def getLeftMatrix(nrow,ncol,bracket_str,add_dummy=True):
 
 
 
-#-----Get string for matrix with right bracket-----
 def getRightMatrix(nrow,ncol,bracket_str,add_dummy=True):
     bracket_dict={
             ')': r')',
