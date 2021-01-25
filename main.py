@@ -10,39 +10,26 @@ import json
 import img2pdf
 #Zmienne globalne
 
-BUTTON_ICON_SIZE      = 16        # function button size
-THUMBNAIL_SIZE        = 36        # thumbnail button size in preset
-MATRIX_THUMBNAIL_SIZE = 48        # thumbnail size for matrix icons in preset
-HIST_THUMBNAIL_SIZE   = 60        # thumbnail button size in history/favorites
-N_HIST                = 20        # size of history/favorite tray
-BUTTON_FONT_SIZE      = 11        # font size for buttons
-TEXT_EDIT_FONT        = 13        # font size for formula edit box
-ICON_NCOL             = 5         # number of columns in preset
-MATRIX_ICON_NCOL      = 4         # number of columns in matrix preset
-TAB_NCOL              = 2         # number of columns for tab icons
+BUTTON_ICON_SIZE      = 16
+THUMBNAIL_SIZE        = 36
+MATRIX_THUMBNAIL_SIZE = 48
+HIST_THUMBNAIL_SIZE   = 60
+N_HIST                = 20
+BUTTON_FONT_SIZE      = 11
+TEXT_EDIT_FONT        = 13
+ICON_NCOL             = 5
+MATRIX_ICON_NCOL      = 4
+TAB_NCOL              = 2
 DEFAULT_RESO          = 150
 CURRENT_DIR           = os.path.dirname(os.path.abspath(__file__))
-ICON_META_FILE        = os.path.join(CURRENT_DIR, 'icon_paths.txt')   # preset file
-HISTORY_FILE          = os.path.join(CURRENT_DIR, 'history/history.txt')   # history data file
-TEX2IM_CMD            = os.path.join(CURRENT_DIR,'tex2im/tex2im')  # tex2im exe path
-DEMO_IMG              = os.path.join(CURRENT_DIR,'tab_icons/demo.png') # demo img
+ICON_META_FILE        = os.path.join(CURRENT_DIR, 'icon_paths.txt')
+HISTORY_FILE          = os.path.join(CURRENT_DIR, 'history/history.txt')
+TEX2IM_CMD            = os.path.join(CURRENT_DIR,'tex2im/tex2im')
+DEMO_IMG              = os.path.join(CURRENT_DIR,'tab_icons/przyklad.png')
 
 
 DEMO_FORMULA=\
-r'''\int_z^{\infty} \frac{dI}{I} = - \int_z^{\infty} \rho k_{\lambda}sec \theta dz
-\left[\begin{matrix}
-a_{11} & a_{12} \\
-a_{21} & a_{22}
-\end{matrix}\right.
-\left[\begin{matrix}
-a_{11} & a_{12} \\
-a_{21} & a_{22}
-\end{matrix}\right.
-\left[\begin{matrix}
-a_{11} & a_{12} \\
-a_{21} & a_{22}
-\end{matrix}\right.
-
+r'''\frac{n!}{k!(n-k)!}=\binom{n}{k}
 '''
 
 def getHSpacer():
@@ -130,7 +117,7 @@ class MainFrame(QtWidgets.QWidget):
         super(MainFrame,self).__init__()
 
         self.thumbnail_meta_list=thumbnail_meta_list
-        self.thumbnail_btn_dict={}    # buttons for preset icons
+        self.thumbnail_btn_dict={}    # przyciski ikon formul
 
         #Zaladuj historie jesli istnieje
         self.loadHistory()
