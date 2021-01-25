@@ -1,12 +1,13 @@
 
 import sys,os,shutil
 import math
+from PIL import Image
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QPixmap, QIcon, QFont
 import tempfile
 import subprocess
 import json
-
+import img2pdf
 #Zmienne globalne
 
 BUTTON_ICON_SIZE      = 16        # function button size
@@ -201,7 +202,7 @@ class MainFrame(QtWidgets.QWidget):
         return frame
 
     def getStackedWidget(self):
-        '''Stworzenie widgetow dla buttonow'''
+       #Stworzenie widgetow dla buttonow
 
         v_layout=QtWidgets.QVBoxLayout()
         grid=QtWidgets.QGridLayout()
@@ -332,8 +333,7 @@ class MainFrame(QtWidgets.QWidget):
 
         #Przycisk  save
         self.img_save_button=QtWidgets.QToolButton()
-        self.img_save_button.setText('Save')
-        self.img_save_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
+        self.img_save_button.setText('Zapisz')
         self.img_save_button.clicked.connect(self.img_save_btn_click)
 
         h_layout.addWidget(self.img_save_button)
@@ -397,9 +397,21 @@ class MainFrame(QtWidgets.QWidget):
 
     def img_save_btn_click(self):
         if self.img_label.pixmap() is not None:
-            filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz obraz!',os.getenv('HOME'), '*.png')
+            filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz obraz .JPG!',os.getenv('HOME'), '*.jpg')
+            filename_pdf = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz plik .PDF!', os.getenv('HOME'), '*.pdf')
             if len(filename[0])>0:
                 self.img_pixmap.save(filename[0])
+
+                img_path = str(filename[0])
+                pdf_path = str(filename_pdf[0])
+
+                image = Image.open(img_path)
+
+                pdf_bytes = img2pdf.convert(image.filename)
+                file = open(pdf_path, "wb")
+                file.write(pdf_bytes)
+                image.close()
+                file.close()
 
 
     def getHistoryFrame(self):
@@ -515,7 +527,7 @@ class MainFrame(QtWidgets.QWidget):
         #Render buttons
         self.render_button=QtWidgets.QToolButton(self)
         self.render_button.setIconSize(QtCore.QSize(BUTTON_ICON_SIZE,BUTTON_ICON_SIZE))
-        self.render_button.setText('Renderus')
+        self.render_button.setText('Renderuj')
         self.render_button.clicked.connect(self.render_btn_click)
 
         h_layout1.addWidget(self.render_button)
