@@ -1,17 +1,19 @@
 
-import sys,os
+import sys,os,shutil
 import math
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QPixmap, QIcon, QFont
 import tempfile
 import subprocess
 import json
-from PIL import Image
 
+#Zmienne globalne
 
 BUTTON_ICON_SIZE      = 16        # function button size
 THUMBNAIL_SIZE        = 36        # thumbnail button size in preset
 MATRIX_THUMBNAIL_SIZE = 48        # thumbnail size for matrix icons in preset
+HIST_THUMBNAIL_SIZE   = 60        # thumbnail button size in history/favorites
+N_HIST                = 20        # size of history/favorite tray
 BUTTON_FONT_SIZE      = 11        # font size for buttons
 TEXT_EDIT_FONT        = 13        # font size for formula edit box
 ICON_NCOL             = 5         # number of columns in preset
@@ -20,26 +22,33 @@ TAB_NCOL              = 2         # number of columns for tab icons
 DEFAULT_RESO          = 150
 CURRENT_DIR           = os.path.dirname(os.path.abspath(__file__))
 ICON_META_FILE        = os.path.join(CURRENT_DIR, 'icon_paths.txt')   # preset file
-ERROR_IMG_FILE        = os.path.join(CURRENT_DIR, 'tab_icons/error.png')  # image for error message
+HISTORY_FILE          = os.path.join(CURRENT_DIR, 'history/history.txt')   # history data file
 TEX2IM_CMD            = os.path.join(CURRENT_DIR,'tex2im/tex2im')  # tex2im exe path
 DEMO_IMG              = os.path.join(CURRENT_DIR,'tab_icons/demo.png') # demo img
 
 
 DEMO_FORMULA=\
-r'''\left<\begin{matrix}
-a_{11} & a_{_{a}^{b}\textrm{C}{x_{a}}^{b}} \\
-a_{21} & a_{22}
-\end{matrix}\right.
-\left|\begin{matrix}
+r'''\int_z^{\infty} \frac{dI}{I} = - \int_z^{\infty} \rho k_{\lambda}sec \theta dz
+\left[\begin{matrix}
 a_{11} & a_{12} \\
 a_{21} & a_{22}
 \end{matrix}\right.
+\left[\begin{matrix}
+a_{11} & a_{12} \\
+a_{21} & a_{22}
+\end{matrix}\right.
+\left[\begin{matrix}
+a_{11} & a_{12} \\
+a_{21} & a_{22}
+\end{matrix}\right.
+
 '''
 
 def getHSpacer():
     h_spacer = QtWidgets.QSpacerItem(0,0,QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Minimum)
     return h_spacer
+
 def getVSpacer():
     v_spacer = QtWidgets.QSpacerItem(0,0,QtWidgets.QSizePolicy.Minimum,
             QtWidgets.QSizePolicy.Expanding)
@@ -56,6 +65,8 @@ def getHLine(parent):
     h_line.setFrameShape(QtWidgets.QFrame.HLine)
     h_line.setFrameShadow(QtWidgets.QFrame.Sunken)
     return h_line
+
+
 def getMinSizePolicy():
     sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum,
             QtWidgets.QSizePolicy.Minimum)
@@ -76,11 +87,17 @@ def getXExpandYExpandSizePolicy():
             QtWidgets.QSizePolicy.Expanding)
     return sizePolicy
 
+
+
+#Rednerowanie formły i exprot to pliku png
 def renderFormula(text,reso,outfile=None):
+
     if len(text)==0:
         return 2, None
+
     reso_str='%dx%d' %(reso,reso)
-    #------------Get a random tmp file name------------
+
+    #Random tmp name
     tmp_tex_fd,tmp_tex_file=tempfile.mkstemp(suffix='.tex',prefix='tmp_latex_',
             dir='/tmp')
     if outfile is None:
@@ -88,7 +105,8 @@ def renderFormula(text,reso,outfile=None):
                 dir='/tmp')
     else:
         tmp_img_file=outfile
-    #------------Call tex2im to render text------------
+
+    #Wywoływanie tex2im
     try:
         tfile=os.fdopen(tmp_tex_fd,'w')
         tfile.write(text)
@@ -109,27 +127,57 @@ class MainFrame(QtWidgets.QWidget):
 
     def __init__(self,thumbnail_meta_list):
         super(MainFrame,self).__init__()
+
         self.thumbnail_meta_list=thumbnail_meta_list
         self.thumbnail_btn_dict={}    # buttons for preset icons
+
+        #Zaladuj historie jesli istnieje
+        self.loadHistory()
+
+        self.history_btn_dict={}
+        self.history_btn_list=[]
         self.tab_btn_dict={}
         self.initUI()
 
 
+    def loadHistory(self):
+        #Sprawdzenie pliku histori
+        history_file_path=os.path.join(CURRENT_DIR,HISTORY_FILE)
+
+        if os.path.exists(history_file_path):
+            self.has_hist=True
+
+            with open(history_file_path,'r') as fin:
+                data_dict=json.load(fin)
+
+                hist=[]
+                if 'history_data' in data_dict:
+                    for ii,dii in enumerate(data_dict['history_data']):
+                        imgii=QPixmap(dii[1])
+                        hist.append([dii[0],dii[1],imgii])
+                self.history_data_list=hist
+        else:
+            self.has_hist=False
+            self.history_data_list=[]
+
+
+
     def getThumbnailFrame(self,icon_size,thumbnail_list,nrow=None,ncol=None):
+
         frame=QtWidgets.QWidget()
         grid=QtWidgets.QGridLayout()
         grid.setSpacing(0)
 
-        #------------------Get grid size------------------
+        #Pobrnanie wielkosci gridu
         nlist=len(thumbnail_list)
         if nrow is None and ncol is not None:
             nrow=max(1,int(math.ceil(nlist/float(ncol))))
         elif nrow is not None and ncol is None:
             ncol=max(1,int(math.ceil(nlist/float(nrow))))
         else:
-            raise Exception("Error")
+            raise Exception("error")
 
-        #---------------Add buttons to grid---------------
+        #Dodanie przyciskow do gridu
         positions=[(ii,jj) for ii in range(nrow) for jj in range(ncol)]
 
         for posii,thumbnailii in zip(positions,thumbnail_list):
@@ -153,6 +201,7 @@ class MainFrame(QtWidgets.QWidget):
         return frame
 
     def getStackedWidget(self):
+        '''Stworzenie widgetow dla buttonow'''
 
         v_layout=QtWidgets.QVBoxLayout()
         grid=QtWidgets.QGridLayout()
@@ -162,7 +211,7 @@ class MainFrame(QtWidgets.QWidget):
 
             stack_nameii,icon_listii=itemii
 
-            #--------Put thumbnails in scroll area--------
+            #import formul do pola
             scrollii=QtWidgets.QScrollArea(self)
             scrollii.setWidgetResizable(True)
 
@@ -179,16 +228,16 @@ class MainFrame(QtWidgets.QWidget):
 
             self.stack.addWidget(scrollii)
 
-            #--------------Create button for stack--------------
+            #Sworzenie przycisku
             buttonii=QtWidgets.QPushButton(stack_nameii,self)
             buttonii.setSizePolicy(getMinSizePolicy())
 
-            #---------------Set button font size---------------
+            #Ustawienia przyciskow
             font=buttonii.font()
             font.setPointSize(BUTTON_FONT_SIZE)
             buttonii.setFont(font)
 
-            #-----Store button and index and connect-----
+            #Przechowywanie przyciskow
             self.tab_btn_dict[buttonii]=ii
             buttonii.clicked.connect(self.tab_btn_click)
 
@@ -198,9 +247,13 @@ class MainFrame(QtWidgets.QWidget):
         v_layout.addLayout(grid)
         v_layout.addWidget(self.stack)
         self.stack.setSizePolicy(getMinSizePolicy())
+
+
         return v_layout
 
-    #---------Preset frame button click funcs---------
+
+
+    #Oprograwmonaie przyciskow
     def thumbnail_btn_click(self):
         icon_text,icon_img_path=self.thumbnail_btn_dict[self.sender()]
         self.text_box.setFontPointSize(TEXT_EDIT_FONT)
@@ -210,13 +263,17 @@ class MainFrame(QtWidgets.QWidget):
         idx=self.tab_btn_dict[self.sender()]
         self.stack.setCurrentIndex(idx)
 
+
+
     def getTextFrame(self):
+        #Stworzenie ramki do tekstu
+
         v_layout=QtWidgets.QVBoxLayout()
         h_layout=QtWidgets.QHBoxLayout()
 
         self.clip_board=QtWidgets.QApplication.clipboard()
 
-        #------------Add buttons for text frame------------
+        #Dodoanie przyciskow do  ramki
         self.undo_button=QtWidgets.QToolButton()
         self.redo_button=QtWidgets.QToolButton()
         self.cut_button=QtWidgets.QToolButton()
@@ -227,31 +284,27 @@ class MainFrame(QtWidgets.QWidget):
         buttons=[self.undo_button, self.redo_button, self.cut_button,
                 self.txt_copy_button, self.paste_button, self.clear_button]
 
-        icon_names=['Cofnij','Ponów','Wytnij','Kopiuj','Wklej','Wyczyść']
+        icon_names=['Cofnij','Ponów','Wytnij','Skopiuj','Wklej','Wyczyść']
 
         for ii,nameii in enumerate(icon_names):
             buttonii=buttons[ii]
-            buttonii.setIcon(QIcon.fromTheme('edit-%s' %nameii.lower()))
             buttonii.setIconSize(QtCore.QSize(BUTTON_ICON_SIZE,BUTTON_ICON_SIZE))
             buttonii.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
             buttonii.setText(nameii)
 
         for bii in buttons:
             h_layout.addWidget(bii)
-
         h_layout.addItem(getHSpacer())
         v_layout.addLayout(h_layout)
-
-        #------------------Add text edit------------------
+        #Dodanie pliku txt
         self.text_box=QtWidgets.QTextEdit()
         font=QFont()
         font.setPointSize(TEXT_EDIT_FONT)
-        #self.text_box.setFontPointSize(TEXT_EDIT_FONT)
         self.text_box.setFont(font)
         self.text_box.setText(DEMO_FORMULA)
         v_layout.addWidget(self.text_box)
 
-        #-----------------Connect buttons-----------------
+        #connect
         self.txt_copy_button.clicked.connect(self.text_box.copy)
         self.paste_button.clicked.connect(self.text_box.paste)
         self.cut_button.clicked.connect(self.text_box.cut)
@@ -262,25 +315,30 @@ class MainFrame(QtWidgets.QWidget):
         frame=QtWidgets.QFrame(self)
         frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         frame.setLayout(v_layout)
+
         return frame
+
 
     def textbox_clear_btn_click(self):
         self.text_box.clear()
+
+
     def getImageFrame(self):
+        #Stworzenie ramki img
+
         v_layout=QtWidgets.QVBoxLayout()
         h_layout=QtWidgets.QHBoxLayout()
 
-        #----------------Save image button----------------
+
+        #Przycisk  save
         self.img_save_button=QtWidgets.QToolButton()
         self.img_save_button.setText('Save')
-        self.img_save_button.setIcon(QIcon.fromTheme('document-save'))
-        self.img_save_button.setIconSize(QtCore.QSize(BUTTON_ICON_SIZE,BUTTON_ICON_SIZE))
         self.img_save_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
         self.img_save_button.clicked.connect(self.img_save_btn_click)
 
         h_layout.addWidget(self.img_save_button)
 
-        #---------------Add img reso slider---------------
+        #Dodanie grafiki do slidera
         slider_label=QtWidgets.QLabel()
         slider_label.setText('DPI')
 
@@ -294,16 +352,15 @@ class MainFrame(QtWidgets.QWidget):
         self.img_slider.valueChanged[int].connect(self.slider_change_value)
 
         h_layout.addStretch()
-
-
-        #--------------Add img reso line edit--------------
+        #import edycji
         self.slider_text=QtWidgets.QLineEdit(self)
         self.slider_text.setText(str(DEFAULT_RESO))
+
         self.slider_text.setFixedWidth(80)
         self.slider_text.setSizePolicy(getMinSizePolicy())
         self.slider_text.returnPressed.connect(self.dpi_box_change_value)
 
-        #------------------Add img label------------------
+        #Dodanie ramki img
         scroll=QtWidgets.QScrollArea(self)
         scroll.setWidgetResizable(True)
 
@@ -314,6 +371,7 @@ class MainFrame(QtWidgets.QWidget):
 
         scroll.setWidget(self.img_label)
         self.img_label.setAlignment(QtCore.Qt.AlignCenter)
+
         h_layout.addWidget(slider_label)
         h_layout.addWidget(self.img_slider)
         h_layout.addWidget(self.slider_text)
@@ -324,7 +382,7 @@ class MainFrame(QtWidgets.QWidget):
 
 
 
-    #----------Img button/slider click funcs----------
+    #Funkcjie img oraz slidera
     def slider_change_value(self):
         v=self.img_slider.value()
         v2=v//50*50
@@ -339,14 +397,63 @@ class MainFrame(QtWidgets.QWidget):
 
     def img_save_btn_click(self):
         if self.img_label.pixmap() is not None:
-            filename=QtWidgets.QFileDialog.getSaveFileName(self, 'Save Image',
-                    os.getenv('HOME'),'*.png')
+            filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz obraz!',os.getenv('HOME'), '*.png')
             if len(filename[0])>0:
                 self.img_pixmap.save(filename[0])
 
 
-    def render_btn_click(self):
+    def getHistoryFrame(self):
+      # Stworzenie ramki do historii
+        tabs=QtWidgets.QTabWidget()
+        scroll1=QtWidgets.QScrollArea(self)
+        scroll1.setWidgetResizable(False)
+        frame1=QtWidgets.QWidget()
+        h_layout1=QtWidgets.QHBoxLayout()
+        for ii in range(N_HIST):
 
+            #Dodanie przyciskow historii
+            buttonii=QtWidgets.QToolButton()
+            buttonii.setIconSize(QtCore.QSize(HIST_THUMBNAIL_SIZE,HIST_THUMBNAIL_SIZE))
+            buttonii.clicked.connect(self.history_btn_click)
+            h_layout1.addWidget(buttonii)
+
+            self.history_btn_dict[buttonii]=ii
+            self.history_btn_list.append(buttonii)
+
+        #Import historii
+        if self.has_hist and len(self.history_data_list)>0:
+            for dataii,btnii in zip(self.history_data_list,self.history_btn_list):
+                iconii=QIcon(dataii[1])
+                btnii.setIcon(iconii)
+
+        #Formatowanie
+        h_spacer=getHSpacer()
+        h_layout1.addItem(h_spacer)
+        scroll1.setMinimumSize(scroll1.sizeHint())
+
+        frame1.setLayout(h_layout1)
+        scroll1.setWidget(frame1)
+        sizePolicy=getMinSizePolicy()
+        scroll1.setSizePolicy(sizePolicy)
+        tabs.addTab(scroll1,'Historia')
+        tabs.setSizePolicy(sizePolicy)
+        return tabs
+
+
+    #Logika przyciskow historii
+    def history_btn_click(self):
+        idx=self.history_btn_dict[self.sender()]
+        try:
+            text,img_file,_=self.history_data_list[idx]
+            self.text_box.setText(text)
+            self.img_pixmap=QPixmap(img_file)
+            self.img_label.setPixmap(self.img_pixmap)
+            self.img_file_path=img_file
+            self.img_save_button.setEnabled(True)
+        except:
+            pass
+        #przycisk render
+    def render_btn_click(self):
         text=self.text_box.toPlainText()
         reso=self.img_slider.value()
         rec,tmp_img_file=renderFormula(text,reso,None)
@@ -356,53 +463,74 @@ class MainFrame(QtWidgets.QWidget):
             self.img_label.setPixmap(self.img_pixmap)
             self.img_file_path=tmp_img_file
             self.img_save_button.setEnabled(True)
+
+
+            #Dodanie do historii
+            if len(self.history_data_list)==N_HIST:
+                self.history_data_list.pop(-1)
+
+            self.history_data_list.insert(0,(text,self.img_file_path,self.img_pixmap))
+
+            for dataii,buttonii in zip(self.history_data_list,\
+                    self.history_btn_list):
+                textii,imgfileii,imgii=dataii
+
+                buttonii.setIcon(QIcon(imgii))
+                buttonii.setIconSize(QtCore.QSize(HIST_THUMBNAIL_SIZE,
+                    HIST_THUMBNAIL_SIZE))
+                buttonii.setStyleSheet('background-color:rgb(255,255,255)')
+
             return 0
+
         elif rec==2 and tmp_img_file is None:
             self.img_label.clear()
             self.img_save_button.setEnabled(False)
             return 1
         else:
-            self.img_pixmap=QPixmap(ERROR_IMG_FILE)
             self.img_label.setPixmap(self.img_pixmap)
             self.img_save_button.setEnabled(False)
             return 1
 
 
+
+
     def initUI(self):
-        #--------------Add vertical layout---------------
+        #Wyglad pionowy
         v_layout0=QtWidgets.QVBoxLayout(self)
-        #-------------------Add 1st row-------------------
-        #--------Add 1st row 2nd column, stacked widget--------
+        #Dodanie pierwszego rzedu
+        #Dodanie 1 rzedu 2 kolumny, formul
         h_layout0=QtWidgets.QHBoxLayout()
         v_layout0.addLayout(h_layout0)
         h_layout0.addLayout(self.getStackedWidget())
         h_layout0.setStretch(0,0)
-
-        #--------------Add 1st row 2nd column--------------
         v_layout1=QtWidgets.QVBoxLayout()
         h_layout0.addLayout(v_layout1)
         h_layout0.setStretch(1,1)
 
-        #------------------Add text edit------------------
+        #Pole edycji
         v_layout1.addWidget(self.getTextFrame())
-
-        #--------------------Add h line--------------------
         h_layout1=QtWidgets.QHBoxLayout()
         h_layout1.addWidget(getHLine(self),alignment=QtCore.Qt.AlignVCenter)
-        #----------------Add render button----------------
+
+        #Render buttons
         self.render_button=QtWidgets.QToolButton(self)
-        self.render_button.setIcon(QIcon.fromTheme('go-down'))
         self.render_button.setIconSize(QtCore.QSize(BUTTON_ICON_SIZE,BUTTON_ICON_SIZE))
-        self.render_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.render_button.setText('Render')
+        self.render_button.setText('Renderus')
         self.render_button.clicked.connect(self.render_btn_click)
+
         h_layout1.addWidget(self.render_button)
         h_layout1.addWidget(getHLine(self),alignment=QtCore.Qt.AlignVCenter)
-        v_layout1.addLayout(h_layout1)
-        #-----------------Add image label-----------------
-        v_layout1.addLayout(self.getImageFrame())
-        self.show()
 
+        v_layout1.addLayout(h_layout1)
+
+        #IMG
+        v_layout1.addLayout(self.getImageFrame())
+
+        #Trzeci rząd
+        v_layout0.addWidget(self.getHistoryFrame())
+
+
+        self.show()
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self,thumbnail_meta_list):
@@ -413,12 +541,39 @@ class MainWindow(QtWidgets.QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("Formuła 1 Inżynieria Oprogramowania")
+        self.setWindowTitle('Inżynieria oprogramowania Formuła 1')
         self.setGeometry(100,100,1200,900)
         self.show()
 
+    def closeEvent(self,event):
+
+        history_folder=os.path.join(CURRENT_DIR,'history')
+
+        #Stworzenie folderu history
+        if not os.path.exists(history_folder):
+            os.makedirs(history_folder)
+        data_dict={}
+
+        #Zapis plików do folderu history
+        if len(self.main_frame.history_data_list)>0:
+            hist_data=[]
+
+            for textii,imgpathii,_ in self.main_frame.history_data_list:
+                _,imgfileii=os.path.split(imgpathii)
+                targetpathii=os.path.join(history_folder,imgfileii)
+                if not os.path.exists(targetpathii):
+                    shutil.move(imgpathii,targetpathii)
+                hist_data.append([textii,targetpathii])
+            data_dict['history_data']=hist_data
+        #Zrzut danych do history.txt
+        history_file=os.path.join(history_folder,'history.txt')
+        if len(data_dict)>0:
+            with open(history_file,'w') as fout:
+                json.dump(data_dict,fout)
+
 if __name__=='__main__':
 
+    #Ikona
     with open(ICON_META_FILE,'r') as fin:
         thumbnail_meta_list=json.load(fin)
     app=QtWidgets.QApplication(sys.argv)
